@@ -1,0 +1,164 @@
+#%% md
+
+#  EDA of Titanic competition in Kaggle:
+
+
+
+#%%
+
+import numpy as np 
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import sklearn
+import sqlite3
+%matplotlib inline
+plt.style.use('ggplot')
+import warnings
+warnings.filterwarnings('ignore')
+
+
+
+#%%
+
+conn = sqlite3.connect("example_db.db")
+data = pd.read_sql("select * from titanic_data",conn)
+conn.close()
+
+#%%
+
+data.head()
+
+#%%
+
+data.info()
+
+#%%
+
+data.describe()
+
+
+#%%
+
+data.isnull().sum()
+
+
+#%% md
+
+#### Feature exploration, part 1
+
+#%%
+
+data.groupby(['Sex','Survived'])['Survived'].count()
+
+
+#%% md
+
+<img src= "https://imgflip.com/s/meme/Futurama-Fry.jpg">
+
+
+#%%
+
+f,ax=plt.subplots(1,1,figsize=(18,8))
+sns.countplot('Survived',data=data)
+ax.set_title('Label counts')
+
+
+#%% md
+
+#### Feature exploration, part 2
+
+
+#%%
+
+f,ax=plt.subplots(1,1,figsize=(18,8))
+sns.countplot('Sex',hue='Survived',data=data,ax=ax)
+ax.set_title('Survival by Sex')
+
+
+#%%
+
+f,ax=plt.subplots(1,1,figsize=(18,8))
+sns.countplot('Pclass',hue='Survived',data=data)
+ax.set_title('Survival by Passenger Class')
+
+
+#%%
+
+pd.crosstab(data.Pclass,data.Survived,margins=True).style.background_gradient(cmap='Blues')
+
+
+#%%
+
+f,ax=plt.subplots(1,2,figsize=(18,8))
+sns.violinplot("Pclass","Age", hue="Survived", data=data,split=True,ax=ax[0])
+ax[0].set_title('Pclass and Age vs Survived')
+ax[0].set_yticks(range(0,110,10))
+sns.violinplot("Sex","Age", hue="Survived", data=data,split=True,ax=ax[1])
+ax[1].set_title('Sex and Age vs Survived')
+ax[1].set_yticks(range(0,110,10))
+plt.show()
+
+
+#%% md
+
+#### Feature exploration, part 3 - Feature relations
+
+#%%
+
+f,ax=plt.subplots(1,1,figsize=(20,10))
+sns.heatmap(data.corr(),annot=True,cmap='RdYlGn',ax=ax)
+
+
+#%%
+
+f,ax=plt.subplots(1,1,figsize=(30,15))
+if "PassengerId" in data.columns:
+    data= data.drop(columns=["PassengerId"])
+pd.plotting.scatter_matrix(data,ax=ax)
+plt.show()
+
+
+
+#%%
+
+from pandas_profiling import ProfileReport
+
+#%%
+
+ProfileReport(data)
+
+
+
+
+
+#%%
+
+data['Title']=data.Name.str.extract('([A-Za-z]+)\.')
+
+#%%
+
+data.groupby("Title").count()["Survived"]
+
+
+#%%
+
+def replace_fringe_titles(x):
+    if x in ["Master","Miss","Mr","Mrs"]:
+        return x
+    return "Other"
+data["Title"] = data["Title"].apply(lambda x:replace_fringe_titles(x))
+
+#%%
+
+data.groupby("Title").count()["Survived"]
+
+
+
+#%%
+
+data.agg({"Age":['count','mean','std','median']})
+
+#%%
+
+data.groupby("Title").agg({"Age":['count','mean','std','median']})
